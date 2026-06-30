@@ -1,0 +1,43 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+:root {
+  --foreground: #111827;
+  --background: #ffffff;
+  --primary: #183a68;
+  --nav: #4876e8;
+  --accent: #e11d48;
+  --muted: #6b7280;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+}
+
+@layer components {
+  .btn-nav {
+    @apply inline-flex items-center justify-center rounded-full bg-nav text-white font-semibold text-sm px-4 py-2 hover:bg-blue-600 transition whitespace-nowrap;
+  }
+  .btn-nav-active {
+    @apply bg-primary;
+  }
+  .btn-cart {
+    @apply inline-flex items-center justify-center rounded-full bg-nav text-white font-semibold text-sm px-5 py-2.5 hover:bg-blue-600 transition disabled:opacity-50;
+  }
+  .hero-slide-in {
+    animation: hero-fade-in 0.45s ease-out;
+  }
+}
+
+@keyframes hero-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

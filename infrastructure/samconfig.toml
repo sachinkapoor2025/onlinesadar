@@ -1,0 +1,27 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "onlinesadar-dev"
+resolve_s3 = true
+s3_prefix = "onlinesadar"
+region = "ap-south-1"
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Environment=dev"
+confirm_changeset = true
+
+[staging.deploy.parameters]
+stack_name = "onlinesadar-staging"
+resolve_s3 = true
+s3_prefix = "onlinesadar"
+region = "ap-south-1"
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Environment=staging"
+
+[prod.deploy.parameters]
+stack_name = "onlinesadar-prod"
+resolve_s3 = true
+s3_prefix = "onlinesadar"
+region = "ap-south-1"
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Environment=prod"
+confirm_changeset = true

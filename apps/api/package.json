@@ -1,0 +1,30 @@
+{
+  "name": "@onlinesadar/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch --env-file=.env src/local.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@onlinesadar/shared": "*",
+    "@aws-sdk/client-dynamodb": "^3.716.0",
+    "@aws-sdk/lib-dynamodb": "^3.716.0",
+    "@aws-sdk/client-s3": "^3.716.0",
+    "@aws-sdk/s3-request-presigner": "^3.716.0",
+    "esbuild": "^0.25.12",
+    "stripe": "^17.5.0",
+    "razorpay": "^2.9.5",
+    "nodemailer": "^6.9.16",
+    "uuid": "^11.0.3"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.146",
+    "@types/node": "^22.10.2",
+    "@types/nodemailer": "^6.4.17",
+    "@types/uuid": "^10.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "functions": {
+    "/api/chat": {},
+    "/api/feed.xml": {},
+    "/api/geo": {},
+    "/api/contact": {}
+  }
+}
