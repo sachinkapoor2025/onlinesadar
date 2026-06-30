@@ -2,7 +2,7 @@
 
 api-deps:
 	npm ci
-	npm run build -w @hr-ecom/shared
+	npm run build -w @onlinesadar/shared
 
 api-bundle: api-deps
 	npx esbuild apps/api/src/index.ts \

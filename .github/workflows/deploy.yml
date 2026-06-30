@@ -1,0 +1,123 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        default: prod
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+concurrency:
+  group: deploy-${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'prod') || (github.ref == 'refs/heads/staging' && 'staging') || 'dev' }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: ap-south-1
+
+jobs:
+  resolve-environment:
+    name: Resolve deploy target
+    runs-on: ubuntu-latest
+    outputs:
+      config_env: ${{ steps.env.outputs.config_env }}
+    steps:
+      - id: env
+        run: |
+          if [ -n "${{ github.event.inputs.environment }}" ]; then
+            echo "config_env=${{ github.event.inputs.environment }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "config_env=prod" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.ref }}" = "refs/heads/staging" ]; then
+            echo "config_env=staging" >> "$GITHUB_OUTPUT"
+          else
+            echo "config_env=dev" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy-api:
+    name: Deploy API (SAM) — ${{ needs.resolve-environment.outputs.config_env }}
+    needs: resolve-environment
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: ${{ needs.resolve-environment.outputs.config_env }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Setup SAM CLI
+        uses: aws-actions/setup-sam@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build shared package
+        run: npm run build -w @onlinesadar/shared
+
+      - name: SAM build
+        run: sam build --template infrastructure/template.yaml
+
+      - name: SAM deploy
+        run: |
+          PARAMS="Environment=${{ needs.resolve-environment.outputs.config_env }}"
+
+          if [ -n "${{ secrets.STRIPE_SECRET_KEY }}" ]; then
+            PARAMS="$PARAMS StripeSecretKey=${{ secrets.STRIPE_SECRET_KEY }}"
+          fi
+          if [ -n "${{ secrets.STRIPE_WEBHOOK_SECRET }}" ]; then
+            PARAMS="$PARAMS StripeWebhookSecret=${{ secrets.STRIPE_WEBHOOK_SECRET }}"
+          fi
+          if [ -n "${{ secrets.RAZORPAY_KEY_ID }}" ]; then
+            PARAMS="$PARAMS RazorpayKeyId=${{ secrets.RAZORPAY_KEY_ID }}"
+          fi
+          if [ -n "${{ secrets.RAZORPAY_KEY_SECRET }}" ]; then
+            PARAMS="$PARAMS RazorpayKeySecret=${{ secrets.RAZORPAY_KEY_SECRET }}"
+          fi
+          if [ -n "${{ secrets.SMTP_PASSWORD }}" ]; then
+            PARAMS="$PARAMS SmtpPassword=${{ secrets.SMTP_PASSWORD }}"
+          fi
+
+          sam deploy \
+            --config-env "${{ needs.resolve-environment.outputs.config_env }}" \
+            --config-file infrastructure/samconfig.toml \
+            --parameter-overrides "$PARAMS" \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset
+
+      - name: Stack outputs
+        run: |
+          STACK="onlinesadar-${{ needs.resolve-environment.outputs.config_env }}"
+          aws cloudformation describe-stacks \
+            --stack-name "$STACK" \
+            --query "Stacks[0].Outputs" \
+            --output table
+
+  # Next.js storefront is deployed by AWS Amplify using amplify.yml at the repo root.
+  # Connect the Amplify app to this GitHub repo; pushes to main/staging trigger Amplify builds.
